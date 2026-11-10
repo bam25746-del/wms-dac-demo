@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WMS.DAC — Warehouse Layout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0b2a5b;--navy-2:#123a78;--blue:#0068b7;--blue-2:#2f8ad6;--blue-soft:#e8f1fa;
+  --green:#00a04a;--green-2:#008a3f;--green-soft:#e6f5ec;
+  --bg:#f2f5f9;--panel:#ffffff;--ink:#1c2b3f;--ink-soft:#5d6b7e;--line:#d7dfe9;--line-2:#e8edf3;
+  --danger:#c8352e;--warn:#d98a00;--shadow:0 1px 2px rgba(11,42,91,.06),0 4px 14px rgba(11,42,91,.07)
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:'IBM Plex Sans Thai',system-ui,'Segoe UI',sans-serif;color:var(--ink);background:var(--bg);font-size:14px}
+header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 22px;background:var(--navy);color:#fff;height:64px;border-bottom:4px solid var(--green)}
+.brand{display:flex;align-items:center;gap:14px;min-width:0}
+.mark{width:40px;height:40px;flex:none;border-radius:6px;background:#fff;color:var(--navy);display:grid;place-items:center;font-weight:700;font-size:13px;letter-spacing:.5px;position:relative;overflow:hidden}
+.mark:after{content:'';position:absolute;left:0;right:0;bottom:0;height:5px;background:var(--green)}
+h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.6px;line-height:1.15}
+h1 span{color:#7cc4ff;font-weight:600}
+header small{display:block;color:#b9c8de;font-size:12px;margin-top:2px}
+.badge{white-space:nowrap;font-size:12px;font-weight:600;color:#fff;border:1px solid rgba(255,255,255,.35);padding:6px 12px;border-radius:4px;display:flex;align-items:center;gap:8px}
+.badge i{width:8px;height:8px;border-radius:50%;background:#f5b400;display:inline-block}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;padding:14px;height:calc(100vh - 64px)}
+#scene{position:relative;overflow:hidden;border-radius:8px;border:1px solid var(--line);background:#e9eef4;box-shadow:var(--shadow);min-height:520px}
+#view{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#view.drag{cursor:grabbing}#view.hover{cursor:pointer}
+.viewbar{position:absolute;z-index:4;top:12px;right:12px;display:flex;gap:0;flex-wrap:wrap;justify-content:flex-end;max-width:80%;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:var(--shadow);overflow:hidden}
+.chip{border:0;border-right:1px solid var(--line-2);background:#fff;color:var(--navy);font:inherit;font-size:13px;font-weight:600;padding:8px 14px;cursor:pointer;min-width:40px}
+.chip:last-child{border-right:0}
+.chip:hover{background:var(--blue-soft)}.chip.on{background:var(--navy);color:#fff}
+.scene-title{position:absolute;z-index:4;left:12px;top:12px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:6px;padding:7px 12px;font-size:12px;color:var(--ink-soft);box-shadow:var(--shadow)}
+.scene-title b{color:var(--navy);font-size:13px;display:block}
+.legend-key{position:absolute;z-index:3;left:12px;bottom:12px;display:flex;gap:12px;background:#ffffffee;border:1px solid var(--line);border-radius:6px;padding:7px 12px;font-size:12px;color:var(--ink-soft)}
+.legend-key span{display:flex;align-items:center;gap:6px}.legend-key i{width:12px;height:12px;border-radius:2px;display:inline-block}
+.hint{position:absolute;z-index:3;right:12px;bottom:12px;background:#ffffffee;border:1px solid var(--line);border-radius:6px;padding:7px 12px;font-size:12px;color:var(--ink-soft);white-space:nowrap;pointer-events:none;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis}
+.tip{position:absolute;z-index:6;pointer-events:none;background:#fff;border:1px solid var(--line);border-top:3px solid var(--blue);border-radius:6px;padding:8px 12px;font-size:12.5px;line-height:1.55;box-shadow:0 6px 20px rgba(11,42,91,.18);max-width:260px;display:none}
+.tip b{font-size:13px;color:var(--navy)}
+.sw{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px;border:1px solid rgba(0,0,0,.12)}
+.side{display:flex;flex-direction:column;min-height:0;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);overflow:hidden}
+.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-bottom:1px solid var(--line);background:#f8fafc}
+.tab{border:0;background:transparent;font:inherit;font-size:13px;font-weight:600;color:var(--ink-soft);padding:13px 4px 11px;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent}
+.tab:hover{color:var(--navy)}
+.tab.on{color:var(--navy);border-bottom-color:var(--blue);background:#fff}
+.panes{flex:1;min-height:0;overflow:auto;padding:18px}
+.pane{display:none}.pane.on{display:block}
+h2{font-size:16px;margin:0 0 14px;color:var(--navy);font-weight:700;letter-spacing:.2px}
+h3{font-size:12px;margin:22px 0 8px;color:var(--ink-soft);font-weight:700;text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--line-2);padding-bottom:6px}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.tile{border-radius:6px;padding:12px 14px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--blue)}
+.tile:nth-child(2){border-left-color:var(--green)}
+.tile .lbl{font-size:12px;color:var(--ink-soft);font-weight:500}.tile .num{font-size:26px;font-weight:700;line-height:1.25;color:var(--navy)}
+.bar{height:8px;border-radius:2px;background:var(--line-2);overflow:hidden;margin:14px 0 6px}
+.bar>div{height:100%;width:0;background:linear-gradient(90deg,var(--navy),var(--blue));transition:width .5s}
+.muted{color:var(--ink-soft);font-size:12.5px;line-height:1.6;margin:4px 0}
+.legend{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;margin:0;border:0;border-bottom:1px solid var(--line-2);background:#fff;font:inherit;font-size:13.5px;color:var(--ink);cursor:pointer;text-align:left}
+.legend:hover{background:#f6f9fc}.legend.on{background:var(--blue-soft);box-shadow:inset 3px 0 0 var(--blue)}
+.legend .dot{width:14px;height:14px;border-radius:2px;flex:none;border:1px solid rgba(0,0,0,.12)}
+.legend .cnt{margin-left:auto;font-weight:700;white-space:nowrap;color:var(--navy);font-variant-numeric:tabular-nums}
+#customers{border:1px solid var(--line);border-radius:6px;overflow:hidden}
+#customers .legend:last-child{border-bottom:0}
+#customers p{margin:0;padding:10px}
+.card{background:#f8fafc;border:1px solid var(--line);border-radius:6px;padding:12px;font-size:13px;line-height:1.7}
+label.lb{display:block;font-size:12.5px;font-weight:600;margin:12px 0 5px;color:var(--ink)}
+input[type=text],input[type=number],textarea,select{width:100%;font:inherit;font-size:14px;color:var(--ink);padding:8px 11px;border:1px solid var(--line);border-radius:4px;background:#fff;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,104,183,.15)}
+textarea{min-height:66px;resize:vertical}
+.row{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+.btn{flex:1 1 auto;border:1px solid var(--blue);font:inherit;font-size:13.5px;font-weight:600;color:#fff;background:var(--blue);padding:9px 12px;border-radius:4px;cursor:pointer;transition:background .15s}
+.btn:hover{background:#005a9e}
+.btn.navy{background:var(--navy);border-color:var(--navy)}.btn.navy:hover{background:var(--navy-2)}
+.btn.green{background:var(--green);border-color:var(--green)}.btn.green:hover{background:var(--green-2)}
+.btn.ghost{background:#fff;color:var(--navy);border-color:var(--line)}.btn.ghost:hover{background:#f3f6fa}
+.btn.danger{background:#fff;color:var(--danger);border-color:#e7b8b5}.btn.danger:hover{background:#fdf1f0}
+.btn.danger.solid{background:var(--danger);color:#fff;border-color:var(--danger)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.picker{display:flex;align-items:center;gap:12px;margin:4px 0;padding:8px;border:1px solid var(--line);border-radius:4px;background:#fff}
+.picker input[type=color]{width:52px;height:36px;border:0;padding:0;background:none;cursor:pointer}
+.picker input[type=color]::-webkit-color-swatch-wrapper{padding:0}.picker input[type=color]::-webkit-color-swatch{border:1px solid var(--line);border-radius:3px}
+.picker .hx{font-weight:700;font-size:14px;letter-spacing:.5px;font-variant-numeric:tabular-nums}.picker .muted{margin:0}
+.box{margin-top:16px;padding:14px;border-radius:6px;background:#f8fafc;border:1px solid var(--line);border-top:3px solid var(--navy)}
+.box.green{border-top-color:var(--green)}.box.blue{border-top-color:var(--blue)}
+.box.active{background:#fffaeb;border-color:#f1d27a;border-top-color:var(--warn)}
+.box b{display:block;margin-bottom:4px;color:var(--navy);font-size:13.5px}
+.toggle{display:flex;align-items:center;gap:10px;font-size:13.5px;cursor:pointer;margin:6px 0}
+.toggle input{width:16px;height:16px;accent-color:var(--blue)}
+.status{font-size:12.5px;color:var(--green-2);min-height:1.4em;margin:8px 0 0}
+.toasts{position:fixed;z-index:70;left:50%;top:76px;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{background:var(--navy);color:#fff;border-left:4px solid var(--green);border-radius:4px;padding:9px 16px;font-size:13px;box-shadow:0 6px 20px rgba(11,42,91,.25);animation:pop .2s ease-out}
+.toast.warn{border-left-color:#f5b400;background:#3b2f12}
+@keyframes pop{from{transform:translateY(-6px);opacity:0}to{transform:none;opacity:1}}
+.modal{position:fixed;inset:0;z-index:80;background:rgba(11,42,91,.35);display:none;place-items:center;padding:16px}
+.modal.on{display:grid}
+.dlg{width:min(420px,100%);background:#fff;border-radius:8px;border-top:4px solid var(--blue);padding:20px 22px;box-shadow:0 20px 50px rgba(11,42,91,.3);animation:pop .15s ease-out}
+.dlg.danger{border-top-color:var(--danger)}
+.dlg h2{margin:0 0 6px}.dlg p{white-space:pre-line;font-size:13.5px;line-height:1.6;margin:6px 0 14px;color:var(--ink-soft)}
+.dlg .row{justify-content:flex-end}.dlg .row .btn{flex:0 0 auto;min-width:96px}
+.noweb{padding:40px;text-align:center;color:var(--ink-soft)}
+footer.note{font-size:11.5px;color:var(--ink-soft);margin-top:16px;line-height:1.6}
+@media(max-width:900px){.app{display:block;height:auto}#scene{height:62vh;min-height:420px}.side{margin-top:14px}.badge{display:none}.viewbar{max-width:calc(100% - 24px);left:12px;right:auto;top:64px}.legend-key,.hint{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="mark">WMS</div>
+    <div><h1>WMS<span>.</span>DAC</h1><small>ผังคลังสินค้า 3D • ฝั่งซ้าย 9 คู่ / ฝั่งขวา 8 คู่ • คู่ละ 2 แถว • 204 ช่องพาเลท</small></div>
+  </div>
+  <span class="badge"><i></i>DEMO • ยังไม่เชื่อมต่อ WMS_DEV</span>
+</header>
+<div class="app">
+  <div id="scene">
+    <canvas id="view"></canvas>
+    <div class="scene-title"><b>Warehouse Layout</b>Pallet location view</div>
+    <div class="viewbar">
+      <button class="chip on" data-view="3d">3D</button>
+      <button class="chip" data-view="top">มุมบน</button>
+      <button class="chip" data-view="front">มุมประตู</button>
+      <button class="chip" data-zoom="-1" title="ซูมเข้า">+</button>
+      <button class="chip" data-zoom="1" title="ซูมออก">−</button>
+      <button class="chip" id="spin">หมุนอัตโนมัติ</button>
+    </div>
+    <div class="tip" id="tip"></div>
+    <div class="legend-key"><span><i style="background:#0068b7"></i>พาเลท</span><span><i style="background:#cfe6d7"></i>ทางรถยก</span><span><i style="background:#d6e4f3"></i>ลานขนถ่าย</span></div>
+    <div class="hint" id="hint">ลากพื้นที่ว่างเพื่อหมุน • ล้อเมาส์เพื่อซูม • ลากพาเลทเพื่อย้าย • คลิกพาเลทเพื่อดูข้อมูล</div>
+  </div>
+  <aside class="side">
+    <nav class="tabs">
+      <button class="tab on" data-tab="ov">ภาพรวม</button>
+      <button class="tab" data-tab="cu">ลูกค้า</button>
+      <button class="tab" data-tab="pl">พาเลท</button>
+      <button class="tab" data-tab="fi">บันทึกข้อมูล</button>
+    </nav>
+    <div class="panes">
+      <section class="pane on" id="pane-ov">
+        <h2>Warehouse Overview</h2>
+        <div class="stats">
+          <div class="tile"><div class="lbl">ใช้พื้นที่</div><div class="num" id="used">—</div></div>
+          <div class="tile"><div class="lbl">ว่าง</div><div class="num" id="free">—</div></div>
+        </div>
+        <div class="bar"><div id="fill"></div></div>
+        <p class="muted" id="counts"></p>
+        <h3>สินค้าแยกตามลูกค้า</h3>
+        <p class="muted">คลิกชื่อลูกค้าเพื่อไฮไลต์พาเลทในผัง คลิกอีกครั้งเพื่อแสดงทั้งหมด</p>
+        <div id="customers"></div>
+        <h3>พาเลทที่เลือก</h3>
+        <div class="card" id="selOv">คลิกพาเลทในผังเพื่อดูข้อมูล</div>
+      </section>
+
+      <section class="pane" id="pane-cu">
+        <h2>รายชื่อลูกค้า</h2>
+        <label class="lb" for="customerSearch">ค้นหาลูกค้า</label>
+        <input id="customerSearch" type="text" maxlength="60" placeholder="พิมพ์ชื่อลูกค้า">
+        <label class="lb" for="customer">ลูกค้าที่เลือก (ใช้ตอนวางพาเลท)</label>
+        <select id="customer"></select>
+        <label class="lb">สีประจำลูกค้า</label>
+        <div class="picker"><input type="color" id="colorPick" value="#0068b7" title="เลือกสี"><div><div class="hx" id="colorHex">#0068B7</div><p class="muted">คลิกที่ช่องสีเพื่อเลือกสี</p></div></div>
+        <div class="row">
+          <button class="btn navy" id="editCustomer">แก้ไขชื่อ / สีของลูกค้าที่เลือก</button>
+        </div>
+        <div class="box green">
+          <b>เพิ่มลูกค้าใหม่</b>
+          <input id="newCustomer" type="text" maxlength="60" placeholder="ชื่อลูกค้าใหม่">
+          <p class="muted">ใช้สีที่เลือกไว้ด้านบน</p>
+          <div class="row"><button class="btn green" id="addCustomer">+ เพิ่มลูกค้า</button></div>
+        </div>
+        <div class="row"><button class="btn ghost" id="deleteCustomer">ซ่อนลูกค้าที่เลือกจากรายชื่อ</button></div>
+        <p class="muted">การซ่อนจะนำชื่อออกจากรายการวางพาเลทเท่านั้น พาเลท สี และหมายเหตุเดิมยังคงอยู่</p>
+      </section>
+
+      <section class="pane" id="pane-pl">
+        <h2>จัดการพาเลท</h2>
+        <div class="card" id="selPl">คลิกพาเลทในผังเพื่อเลือก</div>
+        <label class="lb" for="palletNote">หมายเหตุพาเลท</label>
+        <textarea id="palletNote" maxlength="500" placeholder="เช่น สินค้ารอส่ง / Lot No. / ข้อควรระวัง"></textarea>
+        <div class="row">
+          <button class="btn" id="applyNote">บันทึกหมายเหตุให้พาเลทที่เลือก</button>
+        </div>
+        <div class="row">
+          <button class="btn navy" id="assign">เปลี่ยนเป็นลูกค้าที่เลือก</button>
+          <button class="btn danger" id="remove">ลบพาเลทนี้</button>
+        </div>
+        <p class="muted" id="curCust"></p>
+        <div class="box green">
+          <b>วางพาเลทใหม่</b>
+          <p class="muted">ใช้ลูกค้าที่เลือกในแท็บ “ลูกค้า” และหมายเหตุด้านบน</p>
+          <div class="row"><button class="btn green" id="add">+ วาง 1 พาเลท</button></div>
+          <div class="row" style="align-items:center">
+            <input id="batchQty" type="number" min="1" max="204" value="10" style="flex:0 0 90px">
+            <button class="btn green" id="batch">วางหลายพาเลท</button>
+          </div>
+        </div>
+        <div class="box" id="multiPanel">
+          <b>เลือกหลายพาเลทและลบพร้อมกัน</b>
+          <p class="muted">เปิดโหมดเลือก แล้วคลิกพาเลทในผังทีละรายการ</p>
+          <div class="row">
+            <button class="btn navy" id="multiToggle">เริ่มเลือกหลายรายการ</button>
+            <button class="btn ghost" id="multiAll">เลือกทั้งหมด</button>
+            <button class="btn ghost" id="multiClear">ล้างการเลือก</button>
+          </div>
+          <div class="row"><button class="btn danger solid" id="multiDelete" disabled>ลบพาเลทที่เลือก (0)</button></div>
+        </div>
+      </section>
+
+      <section class="pane" id="pane-fi">
+        <h2>บันทึกและสำรองข้อมูล</h2>
+        <label class="toggle"><input type="checkbox" id="autosave" checked> บันทึกอัตโนมัติทุกครั้งที่แก้ไข</label>
+        <p class="muted">ผังจะถูกเก็บไว้ในเบราว์เซอร์ของเครื่องนี้เท่านั้น หากต้องการใช้งานบนเครื่องอื่น ให้สำรองและเปิดด้วยไฟล์ JSON</p>
+        <div class="row"><button class="btn" id="save">บันทึกผังตอนนี้</button></div>
+        <div class="row">
+          <button class="btn navy" id="export">สำรองเป็นไฟล์ JSON</button>
+          <button class="btn navy" id="import">เปิดไฟล์ JSON</button>
+        </div>
+        <input type="file" id="importFile" accept=".json,application/json" hidden>
+        <div class="row"><button class="btn ghost" id="reset">รีเซ็ตเป็นผังตัวอย่าง</button></div>
+        <p class="status" id="status"></p>
+        <footer class="note">หมายเหตุ: มีช่องเดินคั่นระหว่างแต่ละคู่ (2 แถว) • จำนวน 204 ช่องต้องยืนยันกับผังจริง • เปอร์เซ็นต์คำนวณจากการใช้ช่องพาเลท ไม่ใช่พื้นที่พื้นทั้งหมด</footer>
+      </section>
+    </div>
+  </aside>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<div class="modal" id="modal">
+  <div class="dlg" id="dlgBox">
+    <h2 id="dlgTitle"></h2>
+    <p id="dlgMsg"></p>
+    <input id="dlgInput" type="text" maxlength="60" style="display:none;margin-bottom:12px">
+    <div class="row"><button class="btn ghost" id="dlgCancel">ยกเลิก</button><button class="btn" id="dlgOk">ตกลง</button></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s);
+const FONT='"IBM Plex Sans Thai", "Segoe UI", sans-serif';
+/* ---------- UI helpers ---------- */
+function toast(msg,warn){const t=document.createElement('div');t.className='toast'+(warn?' warn':'');t.textContent=msg;$('#toasts').append(t);setTimeout(()=>t.remove(),2800)}
+function dialog(o){return new Promise(res=>{const m=$('#modal'),inp=$('#dlgInput');$('#dlgBox').classList.toggle('danger',!!o.danger);$('#dlgTitle').textContent=o.title||'';$('#dlgMsg').textContent=o.message||'';inp.style.display=o.input!==undefined?'block':'none';inp.value=o.input||'';const ok=$('#dlgOk'),cancel=$('#dlgCancel');ok.textContent=o.ok||'ตกลง';ok.className='btn '+(o.danger?'danger solid':'');cancel.style.display=o.noCancel?'none':'';m.classList.add('on');if(o.input!==undefined)setTimeout(()=>inp.focus(),30);const done=v=>{m.classList.remove('on');ok.onclick=cancel.onclick=null;inp.onkeydown=null;res(v)};ok.onclick=()=>done(o.input!==undefined?inp.value:true);cancel.onclick=()=>done(o.input!==undefined?null:false);inp.onkeydown=e=>{if(e.key==='Enter')ok.onclick();if(e.key==='Escape')cancel.onclick()}})}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='pane-'+b.dataset.tab))});
+function showTab(t){document.querySelector('.tab[data-tab="'+t+'"]').click()}
+
+if(!window.THREE){$('#scene').innerHTML='<p class="noweb">ไม่สามารถโหลดโมเดล 3D ได้<br>กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วเปิดหน้านี้ใหม่</p>';return}
+
+/* ---------- scene ---------- */
+const T=THREE,canvas=$('#view'),sceneBox=$('#scene'),scene=new T.Scene();
+scene.background=new T.Color(0xe9eef4);scene.fog=new T.Fog(0xe9eef4,95,190);
+const camera=new T.PerspectiveCamera(45,1,.1,400);
+const renderer=new T.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
+scene.add(new T.HemisphereLight(0xf5f9ff,0xa9b4c2,1.9));
+const sun=new T.DirectionalLight(0xffffff,2.0);sun.position.set(-14,30,18);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-32,right:32,top:32,bottom:-32});sun.shadow.bias=-.0005;scene.add(sun);
+const M=(c,o)=>new T.MeshStandardMaterial(Object.assign({color:c,roughness:.82},o||{}));
+function box(w,h,d,x,y,z,m,shadow){const o=new T.Mesh(new T.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=!!shadow;o.receiveShadow=true;scene.add(o);return o}
+
+// site + building
+const ground=new T.Mesh(new T.PlaneGeometry(220,220),M(0xd9e0e8));ground.rotation.x=-Math.PI/2;ground.position.y=-.24;ground.receiveShadow=true;scene.add(ground);
+box(26,.18,43,0,-.12,0,M(0xf4f6f8));                 // concrete floor
+box(4.1,.015,27,0,.003,2,M(0xcfe6d7));               // forklift way (green)
+box(24,.015,9,0,.004,-16,M(0xd6e4f3));               // loading / unloading (blue)
+box(24,.015,4,0,.004,19,M(0xd6e4f3));                // back loading
+const wall=M(0xc5cfdb),trim=M(0x0b2a5b);
+[[.25,43,-13,0],[.25,43,13,0],[26,.25,0,21.5],[5,.25,-10.5,-21.5],[5,.25,10.5,-21.5],[5,.25,0,-21.5]].forEach(([w,d,x,z])=>{box(w,2.2,d,x,1.1,z,wall,true);box(w+.08,.14,d+.08,x,2.27,z,trim)});
+box(6,2.6,4,9.5,1.3,18,M(0x0068b7,{roughness:.6}),true);    // office
+box(6,2.6,4,9.5,1.3,-19,M(0x8fa3bb,{roughness:.7}),true);   // toilet
+// door frames
+const doorMat=M(0x00a04a,{roughness:.5});
+[[-7,-21.5],[3,-21.5]].forEach(([x,z])=>{box(.2,2.6,.35,x-1.6,1.3,z,doorMat);box(.2,2.6,.35,x+1.6,1.3,z,doorMat);box(3.4,.25,.35,x,2.6,z,doorMat)});
+
+function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
+function label(text,x,z,o){o=o||{};const c=document.createElement('canvas');c.width=768;c.height=150;const g=c.getContext('2d');g.font='600 50px '+FONT;const w=Math.min(756,g.measureText(text).width+90),x0=(768-w)/2;g.fillStyle='rgba(11,42,91,.18)';rr(g,x0,18,w,116,10);g.fill();g.fillStyle=o.bg||'#ffffff';rr(g,x0,12,w,116,10);g.fill();g.fillStyle=o.bar||'#0068b7';rr(g,x0,12,14,116,7);g.fill();g.fillStyle=o.fg||'#0b2a5b';g.textAlign='center';g.textBaseline='middle';g.fillText(text,384+7,72);const sp=new T.Sprite(new T.SpriteMaterial({map:new T.CanvasTexture(c),depthTest:false,transparent:true}));sp.position.set(x,o.y||3.2,z);const s=o.scale||1;sp.scale.set(9.4*s,1.84*s,1);sp.renderOrder=5;scene.add(sp);return sp}
+function buildLabels(){label('TOILET',9.5,-19,{scale:.8,bar:'#8fa3bb'});label('OFFICE',9.5,18,{scale:.8,bg:'#0b2a5b',fg:'#ffffff',bar:'#00a04a'});label('FORKLIFT WAY',0,1,{scale:.8,bar:'#00a04a'});label('LOADING / UNLOADING',0,-15.5,{scale:.95});label('BACK LOADING',-5,19,{scale:.8});label('DOOR 2',-7,-22.4,{scale:.6,y:3.3,bar:'#00a04a'});label('DOOR 1',3,-22.4,{scale:.6,y:3.3,bar:'#00a04a'});label('DOOR 3',-12.6,-8,{scale:.6,y:3,bar:'#00a04a'})}
+(document.fonts&&document.fonts.load?document.fonts.load('600 50px "IBM Plex Sans Thai"').catch(()=>{}):Promise.resolve()).then(buildLabels);
+
+/* ---------- racks ---------- */
+const rackPositions=[];const rowZ=row=>-10.7+row*1.10+Math.floor(row/2)*.46;
+const padMat=M(0xe3e8ee),railMat=M(0x8a97a8,{roughness:.5,metalness:.3});
+for(const bank of [-1,1])for(let row=0;row<(bank===-1?18:16);row++)for(let col=0;col<6;col++){const x=bank*(3.15+col*1.38),z=rowZ(row);rackPositions.push([x,z]);box(1.12,.07,.95,x,.035,z,padMat)}
+for(const bank of [-1,1])for(let row=0;row<(bank===-1?18:16);row++){const z=rowZ(row);box(8.6,.07,.08,bank*7.05,.32,z-.52,railMat);box(8.6,.07,.08,bank*7.05,.32,z+.52,railMat)}
+for(let row=2;row<18;row+=2){const z=(rowZ(row-1)+rowZ(row))/2;box(23,.015,.38,0,.014,z,M(0xf2f4f7))}
+for(const x of [-11.6,-10.3,-9,-7.7])box(.06,.02,11,x,.015,0,M(0xf2c200));   // safety lines
+for(const z of [-12,14])box(25,.02,.1,0,.025,z,M(0xf2c200));
+const CAP=rackPositions.length; // 204
+
+/* ---------- data ---------- */
+const palette=[0x0068b7,0x00a04a,0xf39800,0x6b5bb5,0x0b2a5b,0x14a3a8,0xc8352e,0x7f8c9d];
+const swatchColors=[0x0068b7,0x00a04a,0x0b2a5b,0xf39800,0x14a3a8,0x6b5bb5,0xc8352e,0x8bc34a,0x2f8ad6,0xb07a3b,0x7f8c9d,0xd4a106];
+const DEFAULT_NAMES=['ลูกค้า A','ลูกค้า B','ลูกค้า C','ลูกค้า D'];
+const names=[...DEFAULT_NAMES],colors=palette.slice(0,4),archived=[false,false,false,false],pallets=[];
+let selected=null,hovered=null,highlight=-1,multiMode=false;const multiPicked=new Set();
+let curColor=swatchColors[0];
+const hex=n=>'#'+n.toString(16).padStart(6,'0');
+
+/* ---------- pallets (wooden pallet + carton load) ---------- */
+const G={deck:new T.BoxGeometry(.95,.04,1.02),runner:new T.BoxGeometry(.12,.1,1.02),load:new T.BoxGeometry(.86,.65,.92),tape:new T.BoxGeometry(.87,.012,.14),wrap:new T.BoxGeometry(.875,.06,.935)};
+const woodMat=M(0xb88b5a,{roughness:.9}),tapeMat=M(0xf3efe6,{roughness:.5}),wrapMat=M(0xffffff,{roughness:.2,transparent:true,opacity:.35});
+let seq=0;const newId=()=>'P'+Date.now().toString(36)+'-'+(++seq).toString(36);
+function addPallet(x,z,c,id,note){const g=new T.Group();
+  const deck=new T.Mesh(G.deck,woodMat);deck.position.y=.2;const parts=[deck];
+  for(const sx of [-.4,0,.4]){const r=new T.Mesh(G.runner,woodMat);r.position.set(sx,.09,0);parts.push(r)}
+  const load=new T.Mesh(G.load,M(colors[c],{roughness:.7}));load.position.y=.545;
+  const tape=new T.Mesh(G.tape,tapeMat);tape.position.y=.876;
+  const wrap=new T.Mesh(G.wrap,wrapMat);wrap.position.y=.62;
+  [...parts,load].forEach(m=>{m.castShadow=true;m.receiveShadow=true});
+  g.add(...parts,load,tape,wrap);g.position.set(x,0,z);scene.add(g);
+  const item={id:id||newId(),customer:c,x,z,note:String(note||''),group:g,load,decor:[tape,wrap],lift:0};g.traverse(o=>{o.userData.item=item});pallets.push(item);return item}
+function removePallet(p){scene.remove(p.group);p.load.material.dispose();const i=pallets.indexOf(p);if(i>=0)pallets.splice(i,1);multiPicked.delete(p);if(selected===p)selected=null;if(hovered===p)hovered=null}
+const occupied=(x,z,ex)=>pallets.some(p=>p!==ex&&Math.abs(p.x-x)<.25&&Math.abs(p.z-z)<.25);
+function nearestEmpty(x,z,ex){let best=null,bd=Infinity;for(const [rx,rz] of rackPositions){if(occupied(rx,rz,ex))continue;const d=(rx-x)**2+(rz-z)**2;if(d<bd){bd=d;best={rx,rz}}}return best}
+
+// selection marker
+const ring=new T.Mesh(new T.RingGeometry(.72,.82,4,1),new T.MeshBasicMaterial({color:0x00a04a,side:T.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.rotation.z=Math.PI/4;ring.position.y=.08;ring.visible=false;scene.add(ring);
+
+/* ---------- camera ---------- */
+const cam={az:.62,el:.85,dist:58},goal={az:.62,el:.85,dist:58},target=new T.Vector3(0,0,0);let autoSpin=false;
+const VIEWS={'3d':{az:.62,el:.85,dist:58},top:{az:0,el:1.45,dist:60},front:{az:Math.PI,el:.5,dist:60}};
+function placeCamera(){camera.position.set(Math.sin(cam.az)*Math.cos(cam.el)*cam.dist,Math.sin(cam.el)*cam.dist,Math.cos(cam.az)*Math.cos(cam.el)*cam.dist);camera.lookAt(target)}
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-view]').forEach(x=>x.classList.toggle('on',x===b));const v=VIEWS[b.dataset.view];let a=v.az;while(a-goal.az>Math.PI)a-=Math.PI*2;while(goal.az-a>Math.PI)a+=Math.PI*2;Object.assign(goal,v,{az:a})});
+document.querySelectorAll('[data-zoom]').forEach(b=>b.onclick=()=>{goal.dist=Math.max(19,Math.min(92,goal.dist+Number(b.dataset.zoom)*8))});
+function setSpin(v){autoSpin=v;$('#spin').textContent=v?'หยุดหมุน':'หมุนอัตโนมัติ';$('#spin').classList.toggle('on',v)}
+$('#spin').onclick=()=>setSpin(!autoSpin);
+
+/* ---------- refresh / paint ---------- */
+function chosenCustomer(){const i=Number($('#customer').value);return Number.isInteger(i)&&i>=0&&i<names.length&&!archived[i]&&$('#customer').value!==''?i:-1}
+function fillCustomerSelect(){const q=$('#customerSearch').value.trim().toLocaleLowerCase(),sel=$('#customer'),old=sel.value;sel.replaceChildren();names.forEach((n,i)=>{if(archived[i]||!n.toLocaleLowerCase().includes(q))return;const o=document.createElement('option');o.value=String(i);o.textContent=n;sel.append(o)});sel.value=[...sel.options].some(o=>o.value===old)?old:(sel.options[0]?sel.options[0].value:'')}
+function renderSwatches(){$('#colorPick').value=hex(curColor);$('#colorHex').textContent=hex(curColor).toUpperCase()}
+$('#colorPick').oninput=()=>{curColor=parseInt($('#colorPick').value.slice(1),16);$('#colorHex').textContent=$('#colorPick').value.toUpperCase()};
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function selText(p){if(!p)return null;return `<span class="sw" style="background:${hex(colors[p.customer])}"></span><b>${esc(names[p.customer])}</b><br>รหัสพาเลท: ${esc(p.id)}<br>ตำแหน่ง X ${p.x.toFixed(1)}, Z ${p.z.toFixed(1)} (${p.x<0?'ฝั่งซ้าย':'ฝั่งขวา'})<br>หมายเหตุ: ${p.note?esc(p.note):'—'}`}
+function refresh(){fillCustomerSelect();
+  const n=pallets.length,pct=Math.min(100,Math.round(n/CAP*100));$('#used').textContent=pct+'%';$('#free').textContent=(100-pct)+'%';$('#fill').style.width=pct+'%';
+  const left=pallets.filter(p=>p.x<0).length;$('#counts').textContent=`${n} / ${CAP} ช่อง • ฝั่งซ้าย ${left}/108 • ฝั่งขวา ${n-left}/96 (จำลอง)`;
+  const cb=$('#customers');cb.replaceChildren();const list=names.map((nm,i)=>({nm,i,c:pallets.filter(p=>p.customer===i).length})).filter(x=>x.c>0).sort((a,b)=>b.c-a.c);
+  if(highlight>=0&&!list.some(x=>x.i===highlight))highlight=-1;
+  list.forEach(x=>{const b=document.createElement('button');b.className='legend'+(highlight===x.i?' on':'');const d=document.createElement('span');d.className='dot';d.style.background=hex(colors[x.i]);const t=document.createElement('span');t.textContent=x.nm;const c=document.createElement('span');c.className='cnt';c.textContent=x.c+' พาเลท';b.append(d,t,c);b.onclick=()=>{highlight=highlight===x.i?-1:x.i;refresh()};cb.append(b)});
+  if(!list.length){const p=document.createElement('p');p.className='muted';p.textContent='ยังไม่มีพาเลทในคลัง';cb.append(p)}
+  const st=selText(selected);$('#selOv').innerHTML=st||'คลิกพาเลทในผังเพื่อดูข้อมูล';$('#selPl').innerHTML=st||'คลิกพาเลทในผังเพื่อเลือก';
+  const ci=chosenCustomer();$('#curCust').textContent=ci>=0?'ลูกค้าที่เลือกขณะนี้: '+names[ci]:'ยังไม่ได้เลือกลูกค้า (ไปที่แท็บ “ลูกค้า”)';
+  $('#multiPanel').classList.toggle('active',multiMode);$('#multiToggle').textContent=multiMode?'เสร็จสิ้นการเลือก':'เริ่มเลือกหลายรายการ';$('#multiDelete').textContent='ลบพาเลทที่เลือก ('+multiPicked.size+')';$('#multiDelete').disabled=!multiPicked.size;
+  paint();autosave()}
+function paint(){for(const p of pallets){const faded=highlight>=0&&p.customer!==highlight,m=p.load.material,act=multiPicked.has(p);if(m.transparent!==faded){m.transparent=faded;m.depthWrite=!faded;m.needsUpdate=true}m.opacity=faded?.18:1;p.decor.forEach(d=>d.visible=!faded);m.emissive.setHex(act?0xf5b400:0x000000);m.emissiveIntensity=act?.6:0;p.group.scale.setScalar(act?1.1:1)}}
+
+/* ---------- picking & dragging ---------- */
+const ray=new T.Raycaster(),mouse=new T.Vector2(),plane=new T.Plane(new T.Vector3(0,1,0),-.45),hit=new T.Vector3();
+function aim(e){const r=canvas.getBoundingClientRect();mouse.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(mouse,camera)}
+function pick(e){aim(e);const objs=[];for(const p of pallets)objs.push(...p.group.children);const h=ray.intersectObjects(objs,false);for(const x of h){const it=x.object.userData.item;if(it&&!(highlight>=0&&it.customer!==highlight))return it}return null}
+function blocked(x,z){if(Math.abs(x)<2.3&&z>-12&&z<16)return true;if(x<-2.3||x>2.3){for(let r=2;r<18;r+=2){const a=(rowZ(r-1)+rowZ(r))/2;if(Math.abs(z-a)<.27)return true}}if(x>6.5&&z>15)return true;if(x>6.5&&z<-16)return true;return false}
+let down=null,dragging=null,moved=false;
+function select(p){selected=p;$('#palletNote').value=p?p.note||'':'';refresh()}
+canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);moved=false;if(multiMode){const p=pick(e);if(p){multiPicked.has(p)?multiPicked.delete(p):multiPicked.add(p);refresh()}return}down={x:e.clientX,y:e.clientY,az:cam.az,el:cam.el};dragging=pick(e);if(dragging){select(dragging);canvas.classList.add('drag')}});
+canvas.addEventListener('pointermove',e=>{if(down&&(Math.abs(e.clientX-down.x)+Math.abs(e.clientY-down.y)>3))moved=true;
+  if(!down){const p=multiMode||e.pointerType==='touch'?null:pick(e);hovered=p;canvas.classList.toggle('hover',!!p);const tip=$('#tip');if(p){const r=sceneBox.getBoundingClientRect();tip.innerHTML=`<span class="sw" style="background:${hex(colors[p.customer])}"></span><b>${esc(names[p.customer])}</b><br>${esc(p.id)}${p.note?'<br>หมายเหตุ: '+esc(p.note):''}`;tip.style.display='block';tip.style.left=Math.min(r.width-270,e.clientX-r.left+16)+'px';tip.style.top=(e.clientY-r.top+14)+'px'}else tip.style.display='none';return}
+  $('#tip').style.display='none';
+  if(dragging){aim(e);if(ray.ray.intersectPlane(plane,hit)){const x=Math.max(-11.6,Math.min(11.6,hit.x)),z=Math.max(-19.7,Math.min(19.7,hit.z));if(blocked(x,z))return;dragging.x=x;dragging.z=z;dragging.group.position.x=x;dragging.group.position.z=z}}
+  else{setSpin(false);cam.az=goal.az=down.az-(e.clientX-down.x)*.008;cam.el=goal.el=Math.max(.24,Math.min(1.45,down.el+(e.clientY-down.y)*.006))}});
+function endDrag(){if(dragging){const s=nearestEmpty(dragging.x,dragging.z,dragging);if(s){dragging.x=s.rx;dragging.z=s.rz;dragging.group.position.x=s.rx;dragging.group.position.z=s.rz}refresh()}else if(down&&!moved&&selected){select(null)}down=null;dragging=null;canvas.classList.remove('drag')}
+canvas.addEventListener('pointerup',endDrag);canvas.addEventListener('pointercancel',endDrag);
+canvas.addEventListener('pointerleave',()=>{if(!down){hovered=null;$('#tip').style.display='none'}});
+canvas.addEventListener('wheel',e=>{e.preventDefault();goal.dist=Math.max(19,Math.min(92,goal.dist+e.deltaY*.035))},{passive:false});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modal').classList.contains('on')){if(multiMode){multiMode=false;multiPicked.clear()}highlight=-1;select(null)}});
+
+/* ---------- buttons ---------- */
+const needSel=()=>{if(!selected){toast('กรุณาเลือกพาเลทในผังก่อน',true);return false}return true};
+const needCust=()=>{const i=chosenCustomer();if(i<0){toast('กรุณาเลือกลูกค้าในแท็บ “ลูกค้า” ก่อน',true);showTab('cu')}return i};
+$('#add').onclick=()=>{const i=needCust();if(i<0)return;if(pallets.length>=CAP)return toast('คลังเต็มแล้ว ครบ '+CAP+' ช่อง',true);const s=nearestEmpty(-10,-10);if(!s)return toast('ไม่มีช่องว่าง',true);select(addPallet(s.rx,s.rz,i,undefined,$('#palletNote').value));toast('วางพาเลทให้ '+names[i]+' แล้ว')};
+$('#batch').onclick=()=>{const i=needCust();if(i<0)return;const n=Number($('#batchQty').value);if(!Number.isInteger(n)||n<1||n>CAP)return toast('กรุณาระบุจำนวน 1–'+CAP,true);let added=0;for(let k=0;k<n;k++){const s=nearestEmpty(-10,-10);if(!s)break;addPallet(s.rx,s.rz,i,undefined,$('#palletNote').value);added++}refresh();if(added<n)toast(`ช่องว่างไม่พอ วางได้ ${added} จาก ${n} พาเลท`,true);else toast(`วาง ${added} พาเลทให้ ${names[i]} แล้ว`)};
+$('#assign').onclick=()=>{if(!needSel())return;const i=needCust();if(i<0)return;selected.customer=i;selected.load.material.color.setHex(colors[i]);refresh();toast('เปลี่ยนเป็น '+names[i]+' แล้ว')};
+$('#remove').onclick=async()=>{if(!needSel())return;if(!await dialog({title:'ลบพาเลทนี้?',message:selected.id+' • '+names[selected.customer],ok:'ลบ',danger:true}))return;removePallet(selected);refresh();toast('ลบพาเลทแล้ว')};
+$('#applyNote').onclick=()=>{if(!needSel())return;selected.note=$('#palletNote').value;refresh();toast('บันทึกหมายเหตุแล้ว')};
+$('#customer').onchange=()=>{const i=chosenCustomer();if(i>=0){curColor=colors[i];renderSwatches()}refresh()};
+$('#customerSearch').oninput=()=>{fillCustomerSelect();const i=chosenCustomer();if(i>=0){curColor=colors[i];renderSwatches()}};
+$('#newCustomer').onfocus=()=>{const used=new Set(colors);if(!used.has(curColor))return;let c=swatchColors.find(x=>!used.has(x));if(c===undefined){const col=new T.Color().setHSL(Math.random(),.6,.45);c=col.getHex()}curColor=c;renderSwatches()};
+$('#addCustomer').onclick=()=>{const f=$('#newCustomer'),name=f.value.trim();if(!name)return toast('กรุณาระบุชื่อลูกค้า',true);if(names.some(n=>n.toLocaleLowerCase()===name.toLocaleLowerCase()))return toast('มีชื่อนี้อยู่แล้ว (รวมชื่อที่ซ่อนไว้)',true);if(names.length>=100)return toast('รองรับสูงสุด 100 รายชื่อ',true);names.push(name);colors.push(curColor);archived.push(false);f.value='';$('#customerSearch').value='';refresh();$('#customer').value=String(names.length-1);refresh();toast('เพิ่มลูกค้า '+name+' แล้ว')};
+$('#editCustomer').onclick=async()=>{const i=chosenCustomer();if(i<0)return toast('กรุณาเลือกลูกค้าที่ต้องการแก้ไข',true);const v=await dialog({title:'แก้ไขชื่อลูกค้า',message:'สีจะใช้ตามสีที่เลือกไว้ในหน้านี้',input:names[i],ok:'บันทึก'});if(v===null)return;const name=v.trim();if(!name||name.length>60)return toast('ชื่อต้องไม่ว่าง และไม่เกิน 60 ตัวอักษร',true);if(names.some((n,j)=>j!==i&&n.toLocaleLowerCase()===name.toLocaleLowerCase()))return toast('มีชื่อนี้อยู่แล้ว',true);names[i]=name;colors[i]=curColor;pallets.filter(p=>p.customer===i).forEach(p=>p.load.material.color.setHex(curColor));refresh();$('#customer').value=String(i);refresh();toast('แก้ไขแล้ว พาเลทเดิมเปลี่ยนสีตาม')};
+$('#deleteCustomer').onclick=async()=>{const i=chosenCustomer();if(i<0)return toast('กรุณาเลือกลูกค้าก่อน',true);if(archived.filter(a=>!a).length<=1)return toast('ต้องมีลูกค้าที่ใช้งานอย่างน้อย 1 ราย',true);const c=pallets.filter(p=>p.customer===i).length;if(!await dialog({title:'ซ่อน '+names[i]+'?',message:'พาเลทเดิม '+c+' รายการ รวมถึงชื่อ สี และหมายเหตุ จะยังคงอยู่\nเพียงไม่แสดงในรายการวางพาเลท',ok:'ซ่อน'}))return;archived[i]=true;refresh();toast('ซ่อนชื่อลูกค้าแล้ว')};
+$('#multiToggle').onclick=()=>{multiMode=!multiMode;if(multiMode)toast('คลิกพาเลทในผังเพื่อเลือก');refresh()};
+$('#multiAll').onclick=()=>{multiMode=true;multiPicked.clear();pallets.forEach(p=>multiPicked.add(p));refresh()};
+$('#multiClear').onclick=()=>{multiPicked.clear();refresh()};
+$('#multiDelete').onclick=async()=>{const n=multiPicked.size;if(!n)return;if(!await dialog({title:'ลบ '+n+' พาเลท?',message:'การลบนี้มีผลเฉพาะผังจำลอง\nแนะนำให้สำรองไฟล์ JSON ไว้ก่อน',ok:'ลบ',danger:true}))return;[...multiPicked].forEach(removePallet);multiPicked.clear();multiMode=false;refresh();toast('ลบ '+n+' พาเลทแล้ว')};
+
+/* ---------- save / load (compatible with v7 layout) ---------- */
+const storageKey='wms3d-layout-v7',autoKey='wms3d-autosave';
+const snapshot=()=>pallets.map(({id,customer,x,z,note})=>({id,customer,x,z,note}));
+const packageData=()=>({version:7,capacity:CAP,names:[...names],colors:[...colors],archived:[...archived],pallets:snapshot()});
+let ready=false,saveTimer=null;
+function writeLocal(){try{localStorage.setItem(storageKey,JSON.stringify(packageData()));return true}catch(e){return false}}
+function autosave(){if(!ready||!$('#autosave').checked)return;clearTimeout(saveTimer);saveTimer=setTimeout(()=>{if(writeLocal())$('#status').textContent='บันทึกอัตโนมัติแล้ว '+new Date().toLocaleTimeString('th-TH')},500)}
+try{$('#autosave').checked=localStorage.getItem(autoKey)!=='off'}catch(e){}
+$('#autosave').onchange=()=>{try{localStorage.setItem(autoKey,$('#autosave').checked?'on':'off')}catch(e){}if($('#autosave').checked)autosave()};
+function applyData(data){const rows=Array.isArray(data)?data:data.pallets;if(!Array.isArray(rows)||rows.length>CAP)throw Error('จำนวนพาเลทไม่ถูกต้อง');const nn=Array.isArray(data.names)?data.names:DEFAULT_NAMES;if(!nn.length||nn.length>100||nn.some(n=>typeof n!=='string'||!n.trim()||n.length>60)||new Set(nn).size!==nn.length)throw Error('รายชื่อลูกค้าไม่ถูกต้อง');if(rows.some(p=>!p||!Number.isFinite(p.x)||!Number.isFinite(p.z)||!Number.isInteger(p.customer)||p.customer<0||p.customer>=nn.length||typeof p.id!=='string'||(p.note!==undefined&&typeof p.note!=='string')))throw Error('ข้อมูลพาเลทไม่ถูกต้อง');
+  names.splice(0,names.length,...nn);colors.splice(0,colors.length,...nn.map((_,i)=>Array.isArray(data.colors)&&Number.isInteger(data.colors[i])&&data.colors[i]>=0&&data.colors[i]<=0xffffff?data.colors[i]:palette[i%palette.length]));archived.splice(0,archived.length,...nn.map((_,i)=>Array.isArray(data.archived)?data.archived[i]===true:false));if(archived.every(Boolean))archived[0]=false;
+  [...pallets].forEach(removePallet);const seen=new Set();rows.forEach(p=>{let id=p.id;if(seen.has(id))id=id+'-'+(seen.size+1);seen.add(id);addPallet(p.x,p.z,p.customer,id,p.note||'')});selected=null;highlight=-1;multiPicked.clear();refresh()}
+function initial(){[...pallets].forEach(removePallet);for(let i=0;i<72;i++){const r=rackPositions[(i*11+7)%CAP];addPallet(r[0],r[1],i%4,'P'+String(i+1).padStart(3,'0'))}selected=null;highlight=-1;refresh()}
+function downloadBackup(){const blob=new Blob([JSON.stringify(packageData(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='WMS_3D_layout_backup.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+$('#save').onclick=()=>{if(writeLocal()){$('#status').textContent='บันทึกในเบราว์เซอร์แล้ว (แนะนำให้สำรองไฟล์ JSON ด้วย)';toast('บันทึกแล้ว')}else{downloadBackup();$('#status').textContent='เบราว์เซอร์ไม่อนุญาตให้บันทึกภายใน จึงดาวน์โหลดไฟล์ JSON ให้แทน'}};
+$('#export').onclick=()=>{downloadBackup();$('#status').textContent='ดาวน์โหลดไฟล์สำรองแล้ว'};
+$('#import').onclick=()=>$('#importFile').click();
+$('#importFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{applyData(JSON.parse(await f.text()));writeLocal();$('#status').textContent='เปิดผังจากไฟล์แล้ว '+pallets.length+' พาเลท';toast('เปิดผังแล้ว')}catch(err){dialog({title:'ไม่สามารถเปิดไฟล์ได้',message:err.message,noCancel:true,danger:true})}e.target.value=''};
+$('#reset').onclick=async()=>{if(!await dialog({title:'รีเซ็ตผัง?',message:'พาเลทและรายชื่อทั้งหมดจะกลับเป็นข้อมูลตัวอย่าง\nแนะนำให้สำรองไฟล์ JSON ไว้ก่อน',ok:'รีเซ็ต',danger:true}))return;try{localStorage.removeItem(storageKey)}catch(e){}names.splice(0,names.length,...DEFAULT_NAMES);colors.splice(0,colors.length,...palette.slice(0,4));archived.splice(0,archived.length,false,false,false,false);initial();toast('รีเซ็ตแล้ว')};
+
+/* ---------- start ---------- */
+if(/[?&]debug\b/.test(location.search))window.__wms={pallets,camera,canvas,T};
+renderSwatches();
+try{const st=JSON.parse(localStorage.getItem(storageKey));if(st&&Array.isArray(st.pallets))applyData(st);else initial()}catch(e){initial()}
+ready=true;{const i=chosenCustomer();if(i>=0){curColor=colors[i];renderSwatches()}}
+function resize(){const r=sceneBox.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/Math.max(1,r.height);camera.updateProjectionMatrix()}
+new ResizeObserver(resize).observe(sceneBox);resize();
+const clock=new T.Clock();
+renderer.setAnimationLoop(()=>{const dt=Math.min(.05,clock.getDelta());
+  if(autoSpin)goal.az+=dt*.18;const k=1-Math.pow(.001,dt);cam.az+=(goal.az-cam.az)*k;cam.el+=(goal.el-cam.el)*k;cam.dist+=(goal.dist-cam.dist)*k;placeCamera();
+  for(const p of pallets){const want=(p===hovered||p===selected)&&p!==dragging ? .12 : (p===dragging ? .35 : 0);p.lift+=(want-p.lift)*Math.min(1,dt*12);p.group.position.y=p.lift}
+  if(selected){ring.visible=true;ring.position.x=selected.group.position.x;ring.position.z=selected.group.position.z}else ring.visible=false;
+  renderer.render(scene,camera)});
+})();
+</script>
+</body>
+</html>
